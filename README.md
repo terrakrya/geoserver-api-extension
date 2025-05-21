@@ -32,5 +32,31 @@ $ node server.js
 
 ## Exemplo de chamada curl
 ```bash
-curl -X POST -F "kmlfile=@Caminho-do-fogo_BETA-Morro_Santana-polygon1.kml" http://localhost:8084/upload
+curl -X POST -F "kmlfile=@morro-santana.kml" http://localhost:8084/upload
+```
+
+## Instalação em produção
+```bash
+# 1 - Instalar o nvm
+curl -o- https://raw.githubusercontent.com/nvm-sh/nvm/v0.39.7/install.sh | bash
+~/.bashrc
+export NVM_DIR="$HOME/.nvm" [ -s "$NVM_DIR/nvm.sh" ] && \. "$NVM_DIR/nvm.sh"
+
+# 2 - Instalar o node
+nvm install --lts
+nvm use --lts
+
+node -v
+npm -v
+
+# 3 - Instalar o pm2 globalmente
+npm install -g pm2
+
+# 4 - Instalar o projeto
+https://github.com/terrakrya/geoserver-api-extension.git
+cd geoserver-api-extension
+npm install
+pm2 start server.js --name "kml-api"
+pm2 save
+pm2 startup
 ```
