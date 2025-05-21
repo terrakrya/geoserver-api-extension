@@ -32,7 +32,7 @@ $ node server.js
 
 ## Exemplo de chamada curl
 ```bash
-curl -X POST -F "kmlfile=@morro-santana.kml" http://localhost:8084/upload
+curl -X POST -F "kmlfile=@example/morro-santana.kml" http://localhost:8084/upload
 ```
 
 ## Instalação em produção
@@ -59,4 +59,9 @@ npm install
 pm2 start server.js --name "kml-api"
 pm2 save
 pm2 startup
+```
+
+## Testar o servidor remoto
+```bash
+curl -X POST -F "kmlfile=@morro-santana.kml" http://geo.terrakrya.com:8084/upload
 ```

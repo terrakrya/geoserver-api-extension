@@ -36,7 +36,9 @@ const upload = multer({
 });
 
 app.post("/upload", upload.single("kmlfile"), (req, res) => {
+  console.log("### Init upload");
   if (!req.file) {
+    console.log("Arquivo .kml não enviado.");
     return res.status(400).json({ error: "Arquivo .kml não enviado." });
   }
 
@@ -46,13 +48,18 @@ app.post("/upload", upload.single("kmlfile"), (req, res) => {
   xml2js.parseString(fileContent, (err, result) => {
     if (err || !result.kml) {
       fs.unlinkSync(filePath);
+      console.log("Arquivo .kml inválido.");
       return res.status(400).json({ error: "Arquivo .kml inválido." });
     }
-
-    return res.status(200).json({
+    const data = {
       message: "Arquivo .kml recebido e validado com sucesso.",
       filename: req.file.filename,
-    });
+    };
+    console.log("Arquivo .kml recebido e validado com sucesso.");
+    console.log(data);
+    console.log("### End upload");
+
+    return res.status(200).json(data);
   });
 });
 
