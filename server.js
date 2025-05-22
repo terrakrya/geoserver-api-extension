@@ -63,12 +63,6 @@ app.post("/upload", upload.single("kmlfile"), (req, res) => {
   });
 });
 
-// Serve .well-known directory specifically
-app.use('/.well-known', express.static(path.join(__dirname, 'public/.well-known')));
-
-// Serve static files from the public directory
-app.use(express.static(path.join(__dirname, 'public')));
-
 app.listen(PORT, () => {
   console.log(`Servidor rodando na porta ${PORT}`);
 });
