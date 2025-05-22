@@ -65,3 +65,13 @@ pm2 startup
 ```bash
 curl -X POST -F "kmlfile=@morro-santana.kml" http://geo.terrakrya.com:8084/upload
 ```
+
+# Deploy no servidor 
+
+Para fazer o deploy da aplicação, faça o commit na branch main e execute os seguintes comandos para publicar:
+
+$ ssh deployer@geo.terrakrya.com
+$ cd geoserver-api-extension/
+$ git pull
+$ docker compose build
+$ docker compose up -d
