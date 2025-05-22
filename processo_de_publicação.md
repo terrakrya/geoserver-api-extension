@@ -71,6 +71,41 @@ Com os certificados gerados, precisei configurar o nginx para usar o certificado
 
 vim ../nginx/conf.d/default.conf 
 
+adicionei o código:
+
+server {
+    listen 80;
+    server_name geoserver-api-extension.terrakrya.com;
+    return 301 https://$server_name$request_uri;
+}
+
+server {
+    listen 443 ssl;
+    server_name geoserver-api-extension.terrakrya.com;
+
+    ssl_certificate /etc/letsencrypt/live/geoserver-api-extension.terrakrya.com/fullchain.pem;
+    ssl_certificate_key /etc/letsencrypt/live/geoserver-api-extension.terrakrya.com/privkey.pem;
+
+    # Configuração para o desafio do Let's Encrypt
+    location /.well-known/acme-challenge/ {
+        root /usr/share/nginx/html;
+        try_files $uri =404;
+    }
+
+    # Configuração para a API
+    location / {
+        proxy_pass http://geoserver-api-extension-api-1:8084;
+        proxy_http_version 1.1;
+        proxy_set_header Upgrade $http_upgrade;
+        proxy_set_header Connection 'upgrade';
+        proxy_set_header Host $host;
+        proxy_cache_bypass $http_upgrade;
+        proxy_set_header X-Real-IP $remote_addr;
+        proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+        proxy_set_header X-Forwarded-Proto $scheme;
+    }
+}
+
 Depois reiniciei o nginx para aplicar as alterações:
 
 $ docker exec nginx nginx -t
