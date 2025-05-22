@@ -2,9 +2,11 @@ Acessível via:
 https://geoserver-api-extension.terrakrya.com/
 
 Geoserver:
-https://geo.terrakrya.com/geoserver
+https://geo.terrakrya.com/geoserver 
 
 Passos executados:
+
+Criei um registro CNAME apontando geoserver-api-extension.terrakrya.com para geo.terrakrya.com
 
 Criados os arquivos de Docker nesse projeto:
     Dockerfile
