@@ -1,0 +1,15 @@
+version: '3.8'
+
+services:
+  api:
+    build: .
+    expose:
+      - "8084"
+    environment:
+      - NODE_ENV=production
+    networks:
+      - terrakrya-geo_default
+
+networks:
+  terrakrya-geo_default:
+    external: true 
