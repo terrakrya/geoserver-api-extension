@@ -1,3 +1,5 @@
+require("dotenv").config();
+
 const express = require("express");
 const multer = require("multer");
 const fs = require("fs");
@@ -5,25 +7,23 @@ const path = require("path");
 const xml2js = require("xml2js");
 const slugify = require("slugify");
 
+const { createDataStore, createFeatureType } = require("./geoserver");
+
 const app = express();
 const PORT = 8084;
 
-const uploadDir = path.join(__dirname, "uploads");
-if (!fs.existsSync(uploadDir)) fs.mkdirSync(uploadDir);
+const localUploadDir = path.join(__dirname, "uploads");
+if (!fs.existsSync(localUploadDir)) fs.mkdirSync(localUploadDir);
 
-// Mock para dataStoreLabel - você pode receber isso via query param ou body futuramente
-const dataStoreLabel = "Camada KML";
-
-// Configuração do Multer (nome do arquivo customizado com slugify)
+// Configuração do Multer
 const storage = multer.diskStorage({
-  destination: (req, file, cb) => cb(null, uploadDir),
+  destination: (req, file, cb) => cb(null, localUploadDir),
   filename: (req, file, cb) => {
     const layerName = slugify(path.parse(file.originalname).name, {
       lower: true,
     });
-    const datastoreName = `upload-${slugify(dataStoreLabel, { lower: true })}`;
-    const finalName = `${datastoreName}-${layerName}.kml`;
-    cb(null, finalName);
+    const datastoreName = `upload-${slugify(layerName, { lower: true })}`;
+    cb(null, `${datastoreName}-${layerName}.kml`);
   },
 });
 
@@ -35,32 +35,43 @@ const upload = multer({
   },
 });
 
-app.post("/upload", upload.single("kmlfile"), (req, res) => {
+app.post("/upload", upload.single("kmlfile"), async (req, res) => {
   console.log("### Init upload");
+
   if (!req.file) {
-    console.log("Arquivo .kml não enviado.");
     return res.status(400).json({ error: "Arquivo .kml não enviado." });
   }
 
   const filePath = req.file.path;
   const fileContent = fs.readFileSync(filePath, "utf8");
 
-  xml2js.parseString(fileContent, (err, result) => {
-    if (err || !result.kml) {
-      fs.unlinkSync(filePath);
-      console.log("Arquivo .kml inválido.");
-      return res.status(400).json({ error: "Arquivo .kml inválido." });
-    }
-    const data = {
-      message: "Arquivo .kml recebido e validado com sucesso.",
-      filename: req.file.filename,
-    };
-    console.log("Arquivo .kml recebido e validado com sucesso.");
-    console.log(data);
+  try {
+    const parsed = await xml2js.parseStringPromise(fileContent);
+    if (!parsed.kml) throw new Error("KML inválido");
+
+    const fileName = req.file.filename;
+    const layerName = slugify(path.parse(fileName).name, { lower: true });
+    const dataStoreName = `upload-${layerName}`;
+    const absoluteKmlPath = path.join(process.env.UPLOAD_PATH, fileName);
+
+    // Copiar arquivo para o diretório do GeoServer
+    fs.copyFileSync(filePath, absoluteKmlPath);
+
+    await createDataStore(dataStoreName, absoluteKmlPath);
+    await createFeatureType(dataStoreName, layerName);
+
+    const data = { message: "Upload concluído", filename: fileName, layerName };
+    console.log("Upload e criação de camada concluídos com sucesso.", data);
     console.log("### End upload");
 
     return res.status(200).json(data);
-  });
+  } catch (err) {
+    fs.unlinkSync(filePath);
+    console.error("Erro:", err.message);
+    return res
+      .status(400)
+      .json({ error: "Arquivo .kml inválido ou erro ao criar camada." });
+  }
 });
 
 app.listen(PORT, () => {
