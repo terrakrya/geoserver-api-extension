@@ -11,12 +11,15 @@ const auth = {
   password: GEOSERVER_PASS,
 };
 
-async function createDataStore(dataStoreName, kmlPath) {
+async function createDataStore(dataStoreName, shapefilePath) {
   const config = {
     dataStore: {
       name: dataStoreName,
       connectionParameters: {
-        entry: [{ "@key": "url", $: `file:${kmlPath}` }],
+        entry: [
+          { "@key": "url", $: `file:${shapefilePath}` },
+          { "@key": "namespace", $: GEOSERVER_WORKSPACE },
+        ],
       },
     },
   };

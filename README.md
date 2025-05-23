@@ -28,69 +28,16 @@ Ao receber um arquivo, o sistema realiza as seguintes operações:
 
 Esse projeto serve como base para aplicações geoespaciais, como sistemas de mapeamento dinâmico, portais de dados geográficos e soluções que exigem upload e publicação automática de arquivos KML em um GeoServer.
 
-## Build Setup
-
-```bash
-# set node version
-$ nvm use 22.14
-
-# install dependencies
-$ yarn
-
-# serve local
-$ node server.js
-```
-
-## Arquivo .env
-
-Crie um arquivo `.env` na raiz do projeto e inclua o login e senha do Geoserver
-```bash
-cp .env.example .env
-```
-
-> Certifique-se de que o `UPLOAD_PATH` seja o mesmo diretório monitorado pelo GeoServer no DataStore.
-
 ## Exemplo de chamada via curl
 
 ```bash
 curl -X POST -F "kmlfile=@example/morro-santana.kml" http://localhost:8084/upload
 ```
 
-## Instalação em produção
-
-```bash
-# 1 - Instalar o nvm
-curl -o- https://raw.githubusercontent.com/nvm-sh/nvm/v0.39.7/install.sh | bash
-source ~/.bashrc
-
-# 2 - Instalar o node
-nvm install --lts
-nvm use --lts
-
-# 3 - Instalar o pm2 globalmente
-npm install -g pm2
-
-# 4 - Clonar e instalar o projeto
-git clone https://github.com/terrakrya/geoserver-api-extension.git
-cd geoserver-api-extension
-npm install
-
-# 5 - Configurar e iniciar o processo com PM2
-pm2 start server.js --name "kml-api"
-pm2 save
-pm2 startup
-```
-
-## Liberar a porta 8084
-
-```bash
-sudo ufw allow 8084
-```
-
 ## Testar o servidor remoto
 
 ```bash
-curl -X POST -F "kmlfile=@morro-santana.kml" http://geo.terrakrya.com:8084/upload
+curl -X POST -F "kmlfile=@morro-santana.kml" https://geoserver-api-extension.terrakrya.com/upload
 ```
 
 # Deploy no servidor 

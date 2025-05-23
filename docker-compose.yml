@@ -3,13 +3,23 @@ version: '3.8'
 services:
   api:
     build: .
-    expose:
-      - "8084"
+    ports:
+      - "8084:8084"
     environment:
       - NODE_ENV=production
+      - GEOSERVER_URL=http://geoserver:8080/geoserver
+      - GEOSERVER_WORKSPACE=terrakrya
+      - GEOSERVER_USER=admin
+      - GEOSERVER_PASS=geoserver
+      - UPLOAD_PATH=/opt/geoserver/data_dir/data
+    volumes:
+      - ./uploads:/app/uploads
+      - geoserver_data:/opt/geoserver/data_dir
     networks:
       - terrakrya-geo_default
-
 networks:
   terrakrya-geo_default:
-    external: true 
+    external: true
+
+volumes:
+  geoserver_data: 

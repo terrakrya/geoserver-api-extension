@@ -6,6 +6,7 @@ const fs = require("fs");
 const path = require("path");
 const xml2js = require("xml2js");
 const slugify = require("slugify");
+const { execSync } = require("child_process");
 
 const { createDataStore, createFeatureType } = require("./geoserver");
 
@@ -19,11 +20,11 @@ if (!fs.existsSync(localUploadDir)) fs.mkdirSync(localUploadDir);
 const storage = multer.diskStorage({
   destination: (req, file, cb) => cb(null, localUploadDir),
   filename: (req, file, cb) => {
-    const layerName = slugify(path.parse(file.originalname).name, {
+    // Usar apenas o nome original sem prefixo
+    const originalName = slugify(path.parse(file.originalname).name, {
       lower: true,
     });
-    const datastoreName = `upload-${slugify(layerName, { lower: true })}`;
-    cb(null, `${datastoreName}-${layerName}.kml`);
+    cb(null, `${originalName}.kml`);
   },
 });
 
@@ -38,6 +39,7 @@ const upload = multer({
 app.post("/upload", upload.single("kmlfile"), async (req, res) => {
   console.log("### Init upload");
 
+  // Passo 1: Verifica se o arquivo foi enviado
   if (!req.file) {
     return res.status(400).json({ error: "Arquivo .kml não enviado." });
   }
@@ -46,31 +48,62 @@ app.post("/upload", upload.single("kmlfile"), async (req, res) => {
   const fileContent = fs.readFileSync(filePath, "utf8");
 
   try {
+    // Passo 2: Validação básica do XML/KML
     const parsed = await xml2js.parseStringPromise(fileContent);
     if (!parsed.kml) throw new Error("KML inválido");
 
-    const fileName = req.file.filename;
-    const layerName = slugify(path.parse(fileName).name, { lower: true });
-    const dataStoreName = `upload-${layerName}`;
-    const absoluteKmlPath = path.join(process.env.UPLOAD_PATH, fileName);
+    // Usar o nome original do arquivo (sem prefixo)
+    const originalName = slugify(path.parse(req.file.originalname).name, {
+      lower: true,
+    });
+    const layerName = originalName;
+    const dataStoreName = `upload-${originalName}`;
 
-    // Copiar arquivo para o diretório do GeoServer
-    fs.copyFileSync(filePath, absoluteKmlPath);
+    // Passo 3: Cria diretório temporário para o Shapefile
+    const shpDir = path.join(localUploadDir, `${layerName}-shp`);
+    if (!fs.existsSync(shpDir)) fs.mkdirSync(shpDir);
+    const shpPath = path.join(shpDir, `${layerName}.shp`);
 
-    await createDataStore(dataStoreName, absoluteKmlPath);
-    await createFeatureType(dataStoreName, layerName);
+    // Passo 4: Converter KML para Shapefile usando ogr2ogr
+    execSync(`ogr2ogr -f "ESRI Shapefile" "${shpDir}" "${filePath}"`);
 
-    const data = { message: "Upload concluído", filename: fileName, layerName };
-    console.log("Upload e criação de camada concluídos com sucesso.", data);
+    // Passo 5: Copiar todos os arquivos do Shapefile para o diretório do GeoServer
+    const absoluteShpPath = path.join(
+      process.env.UPLOAD_PATH,
+      `${layerName}-shp`,
+      `${layerName}.shp`
+    );
+    const shpFiles = fs.readdirSync(shpDir);
+    const destDir = path.join(process.env.UPLOAD_PATH, `${layerName}-shp`);
+    if (!fs.existsSync(destDir)) fs.mkdirSync(destDir);
+    shpFiles.forEach((f) => {
+      fs.copyFileSync(path.join(shpDir, f), path.join(destDir, f));
+    });
+
+    // Passo 6: Criar DataStore e FeatureType no GeoServer
+    await createDataStore(dataStoreName, absoluteShpPath);
+    await createFeatureType(dataStoreName, path.parse(shpPath).name);
+
+    // Passo 7: Resposta de sucesso
+    const data = {
+      message: "Upload concluído",
+      filename: req.file.filename,
+      layerName,
+    };
+    console.log(
+      "Upload, conversão e criação de camada concluídos com sucesso.",
+      data
+    );
     console.log("### End upload");
 
     return res.status(200).json(data);
   } catch (err) {
+    // Passo 8: Tratamento de erro
     fs.unlinkSync(filePath);
-    console.error("Erro:", err.message);
-    return res
-      .status(400)
-      .json({ error: "Arquivo .kml inválido ou erro ao criar camada." });
+    console.error("Erro:", err);
+    return res.status(400).json({
+      error: "Arquivo .kml inválido, erro na conversão ou ao criar camada.",
+    });
   }
 });
 
