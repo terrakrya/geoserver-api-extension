@@ -11,10 +11,9 @@ services:
       - GEOSERVER_WORKSPACE=terrakrya
       - GEOSERVER_USER=admin
       - GEOSERVER_PASS=geoserver
-      - UPLOAD_PATH=/opt/geoserver/data_dir/data
+      - UPLOAD_PATH=/tmp/uploads-geo
     volumes:
-      - ./uploads:/app/uploads
-      - geoserver_data:/opt/geoserver/data_dir
+      - ./uploads:/tmp/uploads-geo
     networks:
       - terrakrya-geo_default
 networks:

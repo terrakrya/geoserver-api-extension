@@ -11,41 +11,85 @@ const auth = {
   password: GEOSERVER_PASS,
 };
 
-async function createDataStore(dataStoreName, shapefilePath) {
-  const config = {
-    dataStore: {
-      name: dataStoreName,
-      connectionParameters: {
-        entry: [
-          { "@key": "url", $: `file:${shapefilePath}` },
-          { "@key": "namespace", $: GEOSERVER_WORKSPACE },
-        ],
+const createDataStore = async (dataStoreName, filePath) => {
+  try {
+    const data = {
+      dataStore: {
+        name: dataStoreName,
+        type: "KML",
+        connectionParameters: {
+          entry: [
+            {
+              "@key": "url",
+              $: `file:${filePath}`,
+            },
+            {
+              "@key": "namespace",
+              $: GEOSERVER_WORKSPACE,
+            },
+          ],
+        },
       },
-    },
-  };
+    };
 
-  const url = `${GEOSERVER_URL}/rest/workspaces/${GEOSERVER_WORKSPACE}/datastores`;
-  await axios.post(url, config, {
-    auth,
-    headers: { "Content-Type": "application/json" },
-  });
-}
+    const response = await axios.post(
+      `${GEOSERVER_URL}/rest/workspaces/${GEOSERVER_WORKSPACE}/datastores`,
+      data,
+      {
+        auth: {
+          username: GEOSERVER_USER,
+          password: GEOSERVER_PASS,
+        },
+        headers: {
+          "Content-Type": "application/json",
+        },
+      }
+    );
 
-async function createFeatureType(dataStoreName, layerName) {
-  const config = {
-    featureType: {
-      name: layerName,
-      nativeName: layerName,
-      title: layerName,
-    },
-  };
+    return response.data;
+  } catch (error) {
+    console.error(
+      "Erro ao criar DataStore:",
+      error.response?.data || error.message
+    );
+    throw error;
+  }
+};
 
-  const url = `${GEOSERVER_URL}/rest/workspaces/${GEOSERVER_WORKSPACE}/datastores/${dataStoreName}/featuretypes`;
-  await axios.post(url, config, {
-    auth,
-    headers: { "Content-Type": "application/json" },
-  });
-}
+const createFeatureType = async (dataStoreName, layerName) => {
+  try {
+    const data = {
+      featureType: {
+        name: layerName,
+        nativeName: layerName,
+        title: layerName,
+        srs: "EPSG:4326",
+      },
+    };
+
+    const response = await axios.post(
+      `${GEOSERVER_URL}/rest/workspaces/${GEOSERVER_WORKSPACE}/datastores/${dataStoreName}/featuretypes`,
+      data,
+      {
+        auth: {
+          username: GEOSERVER_USER,
+          password: GEOSERVER_PASS,
+        },
+        headers: {
+          "Content-Type": "application/json",
+        },
+      }
+    );
+
+    return response.data;
+  } catch (error) {
+    console.error(
+      "Erro ao criar FeatureType:",
+      error.response?.data || error.message
+    );
+    throw error;
+  }
+};
 
 module.exports = {
   createDataStore,
